@@ -6,16 +6,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -56,7 +63,14 @@ class MainActivity : ComponentActivity() {
 }
 
 class MainViewModel : ViewModel() {
-    val menuItems = listOf("User Profile", "New Document", "Message Physician", "Treatment", "Settings")
+    val menuItems = listOf(
+        "User Profile",
+        "New Document",
+        "Message Physician",
+        "Treatment",
+        "Settings",
+        "Exit",
+        )
 }
 
 @Composable
@@ -64,7 +78,11 @@ fun MainMenu(viewModel: MainViewModel) {
     val navController = rememberNavController()
     NavHost(navController, startDestination = "mainScreen") {
         composable("mainScreen") { MainScreen(viewModel, navController) }
-        composable("userProfile") { UserProfileScreen() }
+        composable("userProfile") { UserProfileScreen(navController) }
+        composable("treatmentMenu") { TreatmentMainMenuScreen(navController) }
+        composable("prescriptions") { PrescriptionsScreen(navController) }
+        composable("physicalTherapy") { PhysicalTherapyScreen(navController) }
+        composable("settingsMenu") {SettingsMainMenuScreen(navController)}
     }
 }
 
@@ -86,8 +104,10 @@ fun MainScreen(viewModel: MainViewModel, navController: NavController) {
         ) {
             viewModel.menuItems.forEach { item ->
                 MenuButton(item) {
-                    if (item == "User Profile") {
-                        navController.navigate("userProfile")
+                    when (item) {
+                        "User Profile" -> navController.navigate("userProfile")
+                        "Treatment" -> navController.navigate("treatmentMenu")
+                        "Settings" -> navController.navigate("settingsMenu")
                     }
                 }
             }
@@ -111,7 +131,7 @@ fun MenuButton(text: String, onClick: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UserProfileScreen() {
+fun UserProfileScreen(navController: NavController) {
     val testosterone = 700f
     val thyroid = 2.3f
     val bloodPressure = 120f
@@ -119,14 +139,21 @@ fun UserProfileScreen() {
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("User Profile") })
+            TopAppBar(
+                title = { Text("User Profile") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Blue)
+                    }
+                }
+            )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Health Score
@@ -135,7 +162,9 @@ fun UserProfileScreen() {
 
             // Health Metrics
             HealthMetricRow("Testosterone", testosterone, "$testosterone ng/dL", 300f, 1000f)
+            Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
             HealthMetricRow("Thyroid", thyroid, "$thyroid mIU/L", 0.5f, 5.0f)
+            Divider(color = Color.Gray, thickness = 1.dp, modifier = Modifier.padding(vertical = 8.dp))
             HealthMetricRow("Blood Pressure", bloodPressure, "$bloodPressure/80 mmHg", 90f, 140f)
         }
     }
@@ -143,16 +172,30 @@ fun UserProfileScreen() {
 
 @Composable
 fun HealthMetricRow(metric: String, value: Float, displayValue: String, min: Float, max: Float) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(metric, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.LightGray)
-        Text(displayValue, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = getHealthColor(value, min, max))
+    Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(metric, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.LightGray)
+            Text(displayValue, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = getHealthColor(value, min, max))
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .background(Color.Gray, shape = RoundedCornerShape(3.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(((value - min) / (max - min)).coerceIn(0f, 1f))
+                    .background(getHealthColor(value, min, max), shape = RoundedCornerShape(3.dp))
+            )
+        }
     }
 }
 
@@ -160,12 +203,174 @@ fun HealthMetricRow(metric: String, value: Float, displayValue: String, min: Flo
 fun getHealthColor(value: Float, min: Float = 0f, max: Float = 100f): Color {
     val normalized = ((value - min) / (max - min)).coerceIn(0f, 1f)
     return when {
+        //colors setup as an example, color metrics would be applied to each health metric individually
         normalized < 0.33f -> Color.Red
         normalized < 0.66f -> Color.Yellow
         else -> Color.Green
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TreatmentMainMenuScreen(navController: NavController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Treatment Menu") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Blue)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            listOf("Prescriptions",
+                "Physical Therapy",
+                "Doctor Notes",
+                "Pay Bill")
+                .forEach { item ->
+                    MenuButton(item) {}
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrescriptionsScreen(navController: NavController) {
+    val prescriptions = listOf(
+        " Lisinopril " to "10mg by mouth, daily",
+        " Metformin " to "500mg by mouth, 2x a day",
+        " Atorvastatin " to "20mg by mouth, at night",
+        " Lorazepam " to "1mg by mouth, 2x day "
+    )
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Prescriptions") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Blue)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            prescriptions.forEach { (name, dosage) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(name, color = Color.LightGray, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(dosage, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PhysicalTherapyScreen(navController: NavController) {
+    val therapyInstructions = listOf (
+        " Left Knee Rehab " to "Leg Extension / 2.5lb / 30 Reps / 4x a week \n" +
+                "Step Ups /  Bodyweight / 15 Reps / 4x a week",
+    )
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Physcial Therapy") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Blue)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            therapyInstructions.forEach { (name, dosage) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(name, color = Color.LightGray, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(dosage, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsMainMenuScreen(navController: NavController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Settings") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Blue)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            listOf(
+                "External Data",
+                "Add Additional User",
+                "UI Settings",
+                "Notifications"
+            ).forEach { item ->
+                MenuButton(item) {}
+            }
+        }
+    }
+}
+
+@Composable
+fun ExitApplication() {
+    //Exit App Syntax
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -179,7 +384,39 @@ fun MenuPreview() {
 @Composable
 fun UserProfilePreview() {
     CSC45_CTA6_PortfolioMilestoneTheme {
-        UserProfileScreen()
+        UserProfileScreen(rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TreatmentMainPreview() {
+    CSC45_CTA6_PortfolioMilestoneTheme {
+        TreatmentMainMenuScreen(rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsMainPreview() {
+    CSC45_CTA6_PortfolioMilestoneTheme {
+        SettingsMainMenuScreen(rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PrescriptionsPreview() {
+    CSC45_CTA6_PortfolioMilestoneTheme {
+        PrescriptionsScreen(rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PhysicalTherapyPreview() {
+    CSC45_CTA6_PortfolioMilestoneTheme {
+        PhysicalTherapyScreen(rememberNavController())
     }
 }
 
