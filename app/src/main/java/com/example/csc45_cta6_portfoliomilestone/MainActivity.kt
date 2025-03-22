@@ -23,10 +23,15 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -83,6 +88,7 @@ fun MainMenu(viewModel: MainViewModel) {
         composable("prescriptions") { PrescriptionsScreen(navController) }
         composable("physicalTherapy") { PhysicalTherapyScreen(navController) }
         composable("settingsMenu") {SettingsMainMenuScreen(navController)}
+        composable("accountInformation") {AccountInfoScreen(navController)}
     }
 }
 
@@ -111,6 +117,9 @@ fun MainScreen(viewModel: MainViewModel, navController: NavController) {
                     }
                 }
             }
+            MenuButton("Account Information") {
+                navController.navigate("accountInformation")
+            }
         }
     }
 }
@@ -135,7 +144,8 @@ fun UserProfileScreen(navController: NavController) {
     val testosterone = 700f
     val thyroid = 2.3f
     val bloodPressure = 120f
-    val overallHealthScore = (testosterone / 10 + thyroid * 10 + bloodPressure / 2) / 3  // Example calculation
+    // Example calculation
+    val overallHealthScore = (testosterone / 10 + thyroid * 10 + bloodPressure / 2) / 3
 
     Scaffold(
         topBar = {
@@ -356,12 +366,54 @@ fun SettingsMainMenuScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             listOf(
+                "Account Information",
                 "External Data",
                 "Add Additional User",
                 "UI Settings",
                 "Notifications"
             ).forEach { item ->
                 MenuButton(item) {}
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountInfoScreen(navController: NavController) {
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var age by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Account Information") },
+                actions = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedTextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") })
+            OutlinedTextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") })
+            OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text("Age") })
+            OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Address") })
+
+            Button(onClick = {
+                navController.popBackStack()
+            }) {
+                Text("Save")
             }
         }
     }
@@ -417,6 +469,14 @@ fun PrescriptionsPreview() {
 fun PhysicalTherapyPreview() {
     CSC45_CTA6_PortfolioMilestoneTheme {
         PhysicalTherapyScreen(rememberNavController())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AccountInfoPreview() {
+    CSC45_CTA6_PortfolioMilestoneTheme {
+        AccountInfoScreen(rememberNavController())
     }
 }
 
